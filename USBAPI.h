@@ -55,20 +55,12 @@ typedef unsigned long u32;
 #define EP_TYPE_ISOCHRONOUS_IN		((1<<EPTYPE0) | (1<<EPDIR))
 #define EP_TYPE_ISOCHRONOUS_OUT		(1<<EPTYPE0)
 
-class USBDevice_
-{
-public:
-	USBDevice_();
-	bool configured();
-
-	void attach();
-	void detach();	// Serial port goes down too...
-	void poll();
-	bool wakeupHost(); // returns false, when wakeup cannot be processed
-
-	bool isSuspended();
-};
-extern USBDevice_ USBDevice;
+bool usb_device_configured();
+void usb_device_attach();
+void usb_device_detach();	// Serial port goes down too...
+void usb_device_poll();
+bool usb_device_wakeupHost(); // returns false, when wakeup cannot be processed
+bool usb_device_is_suspended();
 
 //================================================================================
 //================================================================================

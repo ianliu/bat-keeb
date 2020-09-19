@@ -800,13 +800,7 @@ u8 USBConnected()
 //=======================================================================
 //=======================================================================
 
-USBDevice_ USBDevice;
-
-USBDevice_::USBDevice_()
-{
-}
-
-void USBDevice_::attach()
+void usb_device_attach()
 {
 	_usbConfiguration = 0;
 	_usbCurrentStatus = 0;
@@ -819,22 +813,22 @@ void USBDevice_::attach()
 	TX_RX_LED_INIT;
 }
 
-void USBDevice_::detach()
+void usb_device_detach()
 {
 }
 
 //	Check for interrupts
 //	TODO: VBUS detection
-bool USBDevice_::configured()
+bool usb_device_configured()
 {
 	return _usbConfiguration;
 }
 
-void USBDevice_::poll()
+void usb_device_poll()
 {
 }
 
-bool USBDevice_::wakeupHost()
+bool usb_device_wakeupHost()
 {
 	// clear any previous wakeup request which might have been set but could be processed at that time
 	// e.g. because the host was not suspended at that time
@@ -854,7 +848,7 @@ bool USBDevice_::wakeupHost()
 	return false;
 }
 
-bool USBDevice_::isSuspended()
+bool usb_device_is_suspended()
 {
 	return (_usbSuspendState & (1 << SUSPI));
 }

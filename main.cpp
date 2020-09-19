@@ -23,14 +23,14 @@ int main(void)
 {
 	init();
 
-#if defined(USBCON)
-	USBDevice.attach();
-#endif
+	usb_device_attach();
 	
 	for (;;) {
 		RXLED0;
+		TXLED1;
 		delay(1000);
 		RXLED1;
+		TXLED0;
 		delay(1000);
 		if (serialEventRun) serialEventRun();
 	}
