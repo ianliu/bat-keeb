@@ -43,7 +43,9 @@ CORE = $(BUILDDIR)/abi.o \
        $(BUILDDIR)/wiring_pulse.o \
        $(BUILDDIR)/wiring_shift.o \
        $(BUILDDIR)/WMath.o \
-       $(BUILDDIR)/WString.o
+       $(BUILDDIR)/WString.o \
+       $(BUILDDIR)/HID.o \
+       $(BUILDDIR)/Keyboard.o
 
 all: $(BUILDDIR)/main.hex
 
