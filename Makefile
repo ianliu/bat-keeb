@@ -1,3 +1,5 @@
+-include env.make
+
 BUILDDIR ?= build
 PORT     ?= /dev/ttyACM0
 
