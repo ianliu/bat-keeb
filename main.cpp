@@ -18,6 +18,7 @@
 */
 
 #include <Arduino.h>
+#include "Keyboard.h"
 
 typedef uint8_t u8;
 
@@ -99,6 +100,19 @@ const u8 rows[] = {
 	9,  // L5
 };
 
+static const u8 layout0[] = {
+	'a', 'b', 'c', 'd', 'e', 'f',
+	'g', 'h', 'i', 'j', 'k', 'l',
+	'm', 'n', 'o', 'p', 'q', 'r',
+	's', 't', 'u', 'v', 'w', 'x',
+	'y', 'z', '0', '1', '2', '3',
+	'4', '5', '6', '7', '8', '9',
+	'~', '!', '@', '#', '$', '%',
+	'^', '&', '*', '(', ')', '-',
+	'+', '[', ']', '{', '}', '/',
+	',', ';', '.', '"', '`', '=',
+};
+
 const u8 ncols = sizeof(cols) / sizeof(cols[0]);
 const u8 nrows = sizeof(rows) / sizeof(rows[0]);
 
@@ -115,8 +129,12 @@ int main(void)
 {
 	init();
 	usb_device_attach();
+
+#ifdef DEBUG
+	while (!Serial);
 	Serial.begin(9600);
 	Serial.println("Hi");
+#endif
 
 	for (u8 i = 0; i < ncols; i++) pinMode(cols[i], INPUT_PULLUP);
 	for (u8 i = 0; i < nrows; i++) pinMode(rows[i], OUTPUT);
@@ -131,11 +149,21 @@ int main(void)
 			u8 value = digitalRead(cols[col]);
 			if (state[row * ncols + col] != value) {
 				state[row * ncols + col] = value;
+				u8 k = layout0[row * ncols + col];
+#ifdef DEBUG
 				Serial.print(row);
 				Serial.print(' ');
 				Serial.print(col);
 				Serial.print(": ");
-				Serial.println(value);
+				Serial.print(value);
+				Serial.print(' ');
+				Serial.print((char)k);
+				Serial.println();
+#endif
+				if (value == LOW)
+					Keyboard.press(k);
+				else
+					Keyboard.release(k);
 			}
 		}
 		if (serialEventRun) serialEventRun();

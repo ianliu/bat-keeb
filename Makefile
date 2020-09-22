@@ -2,21 +2,22 @@
 
 BUILDDIR ?= build
 PORT     ?= /dev/ttyACM0
+BUILD    ?= debug
 
 CXX = avr-g++
 CC = avr-gcc
 MCU = atmega32u4
 
-CPPFLAGS = -DF_CPU=16000000L -DARDUINO=10813 -DARDUINO_AVR_LEONARDO -DARDUINO_ARCH_AVR \
-	   -DUSB_VID=0x2341 -DUSB_PID=0x8036 "-DUSB_MANUFACTURER=\"Unknown\"" \
-	   "-DUSB_PRODUCT=\"Arduino Leonardo\"" -I.
+_CPPFLAGS = -DF_CPU=16000000L -DARDUINO=10813 -DARDUINO_AVR_LEONARDO -DARDUINO_ARCH_AVR \
+	    -DUSB_VID=0x2341 -DUSB_PID=0x8036 "-DUSB_MANUFACTURER=\"Unknown\"" \
+	    "-DUSB_PRODUCT=\"Arduino Leonardo\"" -I. $(CPPFLAGS)
 
-CXXFLAGS = -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections \
-	   -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto \
-	   -mmcu=$(MCU) -I.
+_CXXFLAGS = -c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections \
+	    -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto \
+	    -mmcu=$(MCU) -I. $(CXXFLAGS)
 
-CFLAGS = -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -fno-fat-lto-objects \
-	 -MMD -flto -mmcu=$(MCU)
+_CFLAGS = -c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -fno-fat-lto-objects \
+	  -MMD -flto -mmcu=$(MCU) $(CFLAGS)
 
 LDFLAGS =
 LIBS = -lm
@@ -49,16 +50,31 @@ CORE = $(BUILDDIR)/abi.o \
        $(BUILDDIR)/HID.o \
        $(BUILDDIR)/Keyboard.o
 
-all: $(BUILDDIR)/main.hex
+all: debug
+
+build/main-$(BUILD).hex: $(BUILDDIR) $(BUILDDIR)/main.hex
+	cp $(BUILDDIR)/main.hex $@
+
+release:
+	$(MAKE) BUILD=release BUILDDIR=$(BUILDDIR)/release build/main-release.hex
+
+debug:
+	$(MAKE) BUILD=debug CPPFLAGS=-DDEBUG BUILDDIR=$(BUILDDIR)/debug build/main-debug.hex
+
+attach:
+	screen $(PORT) 9600
+
+$(BUILDDIR):
+	mkdir -p $(BUILDDIR)
 
 $(BUILDDIR)/%.o: %.S
-	$(CC) -c -g -x assembler-with-cpp -flto -MMD -mmcu=$(MCU) $(CPPFLAGS) $^ -o $@
+	$(CC) -c -g -x assembler-with-cpp -flto -MMD -mmcu=$(MCU) $(_CPPFLAGS) $^ -o $@
 
 $(BUILDDIR)/%.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $^ -o $@
+	$(CXX) $(_CXXFLAGS) $(_CPPFLAGS) $^ -o $@
 
 $(BUILDDIR)/%.o: %.c
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $^ -o $@
+	$(CXX) $(_CFLAGS) $(_CPPFLAGS) $^ -o $@
 
 $(BUILDDIR)/main.elf: $(CORE)
 	$(CC) -w -Os -g -flto -fuse-linker-plugin -Wl,--gc-sections -mmcu=atmega32u4 \
@@ -74,6 +90,12 @@ $(BUILDDIR)/main.hex: $(BUILDDIR)/main.elf $(BUILDDIR)/main.eep
 size: $(BUILDDIR)/main.elf
 	avr-size -A $^
 
+burn-debug:
+	$(MAKE) BUILD=debug BUILDDIR=$(BUILDDIR)/debug burn
+
+burn-release:
+	$(MAKE) BUILD=release BUILDDIR=$(BUILDDIR)/release burn
+
 burn: $(BUILDDIR)/main.hex
 	python reset.py $(PORT)
 	sleep 2
@@ -81,11 +103,3 @@ burn: $(BUILDDIR)/main.hex
 
 tags:
 	ctags *.c *.cpp *.h
-
-clean:
-	-rm -f $(CORE) $(CORE:.o=.d) $(BUILDDIR)/main.elf $(BUILDDIR)/main.eep
-
-clean-all: clean
-	-rm -f tags
-
-.PHONY: clean
