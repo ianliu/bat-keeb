@@ -76,6 +76,27 @@ typedef uint8_t u8;
  *     └─────────────┘
  */
 
+#define LAYOUT( K00, K01, K02, K03, K04, K05 \
+	      , K10, K11, K12, K13, K14, K15 \
+	      , K20, K21, K22, K23, K24, K25 \
+	      , K30, K31, K32, K33, K34, K35 \
+	      ,                K43, K44, K45 \
+	      , K50, K51, K52, K53, K54, K55 \
+	      , K60, K61, K62, K63, K64, K65 \
+	      , K70, K71, K72, K73, K74, K75 \
+	      , K80, K81, K82, K83, K84, K85 \
+	      , K90, K91, K92              ) \
+{ K00, K01, K02, K03, K04, K05 \
+, K10, K11, K12, K13, K14, K15 \
+, K20, K21, K22, K23, K24, K25 \
+, K30, K31, K32, K33, K34, K35 \
+,                K43, K44, K45 \
+, K55, K54, K53, K52, K51, K50 \
+, K65, K64, K63, K62, K61, K60 \
+, K75, K74, K73, K72, K71, K70 \
+, K85, K84, K83, K82, K81, K80 \
+,                K92, K91, K90 }
+
 const u8 cols[] = {
 	21, // A
 	20, // B
@@ -98,19 +119,19 @@ const u8 rows[] = {
 	10, // R5
 };
 
-static const u8 layout0[] = {
-	KEY_ESC, '1', '2', '3', '4', '5',
-	KEY_TAB, 'q', 'w', 'e', 'r', 't',
-	KEY_LEFT_CTRL, 'a', 's', 'd', 'f', 'g',
-	KEY_LEFT_SHIFT, 'z', 'x', 'c', 'v', 'b',
-	'\0', '\0', '\0', KEY_LEFT_ALT, KEY_LEFT_GUI, ' ',
+static const u8 layout0[] = LAYOUT(
+	KEY_ESC       , KEY_1       , KEY_2        , KEY_3       , KEY_4       , KEY_5        ,
+	KEY_TAB       , KEY_Q       , KEY_W        , KEY_E       , KEY_R       , KEY_T        ,
+	KEY_LEFT_CTRL , KEY_A       , KEY_S        , KEY_D       , KEY_F       , KEY_G        ,
+	KEY_LEFT_SHIFT, KEY_Z       , KEY_X        , KEY_C       , KEY_V       , KEY_B        ,
+	KEY_NULL      , KEY_NULL    , KEY_NULL     , KEY_LEFT_ALT, KEY_LEFT_GUI, KEY_SPACE    ,
 
-	KEY_BACKSPACE, '0', '9', '8', '7', '6',
-	'\\', 'p', 'o', 'i', 'u', 'y',
-	'\'', ';', 'l', 'k', 'j', 'h',
-	KEY_RETURN, '/', '.', ',', 'm', 'n',
-	'\0', '\0', '\0', ']', '[', ' ',
-};
+	KEY_6         , KEY_7       , KEY_8        , KEY_9       , KEY_0       , KEY_BACKSPACE,
+	KEY_Y         , KEY_U       , KEY_I        , KEY_O       , KEY_P       , KEY_BACKSLASH,
+	KEY_H         , KEY_J       , KEY_K        , KEY_L       , KEY_COLON   , KEY_QUOTE    ,
+	KEY_N         , KEY_M       , KEY_COMMA    , KEY_DOT     , KEY_SLASH   , KEY_RETURN   ,
+	KEY_SPACE     , KEY_LBRACKET, KEY_RBRACKET', KEY_NULL    , KEY_NULL    , KEY_NULL     ,
+);
 
 const u8 ncols = sizeof(cols) / sizeof(cols[0]);
 const u8 nrows = sizeof(rows) / sizeof(rows[0]);
