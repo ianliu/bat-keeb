@@ -23,6 +23,7 @@
 #include <util/atomic.h>
 
 typedef uint8_t u8;
+typedef uint32_t u32;
 
 /**
  * Keyboard layout (col row):
@@ -99,7 +100,7 @@ typedef uint8_t u8;
 , K85, K84, K83, K82, K81, K80 \
 , '\0', '\0', '\0', K92, K91, K90 }
 
-#define DIFF(a, b) ((a) >= (b) ? (a) - (b) : UINT32_MAX - (a) - (b))
+#define DIFF(a, b) ((a) >= (b) ? (a) - (b) : UINT32_MAX - (b) + (a))
 
 const u8 cols[] = {
 	21, // A
@@ -139,9 +140,32 @@ static const u8 layout0[] = LAYOUT(
 const u8 ncols = sizeof(cols) / sizeof(cols[0]);
 const u8 nrows = sizeof(rows) / sizeof(rows[0]);
 
-u8 state[nrows] = { 0, };
-u8 debounce_state[nrows] = { 0, };
+u8 state[nrows] = {
+	0b00111111,
+	0b00111111,
+	0b00111111,
+	0b00111111,
+	0b00111111,
+	0b00111111,
+	0b00111111,
+	0b00111111,
+	0b00111111,
+	0b00111111,
+};
+u8 debounce_state[nrows] = {
+	0b00111111,
+	0b00111111,
+	0b00111111,
+	0b00111111,
+	0b00111111,
+	0b00111111,
+	0b00111111,
+	0b00111111,
+	0b00111111,
+	0b00111111,
+};
 u8 debouncing = 0;
+u32 debouncing_t0;
 
 u8 read_cols() {
 	/*
@@ -193,15 +217,25 @@ int main(void)
 		digitalWrite(rows[row], LOW);
 		delayMicroseconds(30);
 		u8 new_col = read_cols();
-		u8 changed = new_col ^ state[row];
-		state[row] = new_col;
-		for (u8 col = 0; col < 6; col++) {
-			u8 k = layout0[row * ncols + col];
-			if (changed & (1 << col)) {
-				if (new_col & (1 << col))
-					Keyboard.release(k);
-				else
-					Keyboard.press(k);
+		if (new_col != debounce_state[row]) {
+			debouncing = 1;
+			debouncing_t0 = millis();
+			debounce_state[row] = new_col;
+		}
+		if (debouncing && DIFF(millis(), debouncing_t0) > 5) {
+			debouncing = 0;
+			for (u8 i = 0; i < nrows; i++) {
+				u8 changed = debounce_state[i] ^ state[i];
+				if (!changed) continue;
+				for (u8 j = 0; j < ncols; j++) {
+					if (!(changed & (1 << j))) continue;
+					u8 k = layout0[i * ncols + j];
+					if (debounce_state[i] & (1 << j))
+						Keyboard.release(k);
+					else
+						Keyboard.press(k);
+				}
+				state[i] = debounce_state[i];
 			}
 		}
 		if (serialEventRun) serialEventRun();
