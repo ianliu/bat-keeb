@@ -20,6 +20,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 #include "Keyboard.h"
+#include <util/atomic.h>
 
 typedef uint8_t u8;
 
@@ -138,21 +139,25 @@ static const u8 layout0[] = LAYOUT(
 const u8 ncols = sizeof(cols) / sizeof(cols[0]);
 const u8 nrows = sizeof(rows) / sizeof(rows[0]);
 
-u8 state[ncols * nrows] = { 0, };
+u8 state[nrows] = { 0, };
+u8 debounce_state[nrows] = { 0, };
+u8 debouncing = 0;
 
-u8 get_state(u8 row, u8 col) {
-	u8 cols = state[row];
-	u8 mask = ((u8)(1)) << col;
-	return cols & mask;
-}
-
-void set_state(u8 row, u8 col, u8 val) {
-	u8 mask = ((u8)(1)) << col;
-	if (val) {
-		state[row] |= mask;
-	} else {
-		state[row] &= ~mask;
-	}
+u8 read_cols() {
+	/*
+	 * The columns are given by the following bits on PINF and PIND
+	 * registers:
+	 *         C B A
+	 * PINF: 0 1 1 1 0 0 0 0
+	 *             D     F E
+	 * PIND: 0 0 0 1 0 0 1 1
+	 *
+	 * The following operation will merge the column values in the
+	 * following way:
+	 *           F E D C B A
+	 * RES:  0 0 1 1 1 1 1 1
+	 */
+	return (PINF >> 4) & 7 | (PIND >> 1) & 8 | (PIND & 3) << 4;
 }
 
 int main(void)
@@ -160,9 +165,26 @@ int main(void)
 	init();
 	usb_device_attach();
 
-	for (u8 i = 0; i < ncols; i++) pinMode(cols[i], INPUT_PULLUP);
-	for (u8 i = 0; i < nrows; i++) pinMode(rows[i], OUTPUT);
-	for (u8 i = 0; i < nrows; i++) digitalWrite(rows[i], HIGH);
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		/* Set rows to outputs and raise them to HIGH */
+		DDRB  |= 0b01111110;
+		DDRC  |= 0b01000000;
+		DDRD  |= 0b10000000;
+		DDRE  |= 0b01000000;
+		DDRF  |= 0b10000000;
+		PORTB |= 0b01111110;
+		PORTC |= 0b01000000;
+		PORTD |= 0b10000000;
+		PORTE |= 0b01000000;
+		PORTF |= 0b10000000;
+
+		/* Set columns to input pullups */
+		DDRD  &= ~0b01110000;
+		DDRF  &= ~0b00010011;
+		PORTF |=  0b01110000;
+		PORTD |=  0b00010011;
+	}
+
 	u8 row = 0, last;
 	for (;;) {
 		last = row;
@@ -170,17 +192,17 @@ int main(void)
 		digitalWrite(rows[last], HIGH);
 		digitalWrite(rows[row], LOW);
 		delayMicroseconds(30);
-		for (u8 col = 0; col < ncols; col++) {
-			u8 value = !digitalRead(cols[col]);
-			if (get_state(row, col) != value) {
-				set_state(row, col, value);
-				u8 k = layout0[row * ncols + col];
-				if (value)
-					Keyboard.press(k);
-				else
+		u8 new_col = read_cols();
+		u8 changed = new_col ^ state[row];
+		state[row] = new_col;
+		for (u8 col = 0; col < 6; col++) {
+			u8 k = layout0[row * ncols + col];
+			if (changed & (1 << col)) {
+				if (new_col & (1 << col))
 					Keyboard.release(k);
+				else
+					Keyboard.press(k);
 			}
-			delayMicroseconds(5);
 		}
 		if (serialEventRun) serialEventRun();
 	}
