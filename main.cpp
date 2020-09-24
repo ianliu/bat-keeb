@@ -18,6 +18,7 @@
 */
 
 #include <Arduino.h>
+#include <stdint.h>
 #include "Keyboard.h"
 
 typedef uint8_t u8;
@@ -90,12 +91,14 @@ typedef uint8_t u8;
 , K10, K11, K12, K13, K14, K15 \
 , K20, K21, K22, K23, K24, K25 \
 , K30, K31, K32, K33, K34, K35 \
-,                K43, K44, K45 \
+, '\0', '\0', '\0', K43, K44, K45 \
 , K55, K54, K53, K52, K51, K50 \
 , K65, K64, K63, K62, K61, K60 \
 , K75, K74, K73, K72, K71, K70 \
 , K85, K84, K83, K82, K81, K80 \
-,                K92, K91, K90 }
+, '\0', '\0', '\0', K92, K91, K90 }
+
+#define DIFF(a, b) ((a) >= (b) ? (a) - (b) : UINT32_MAX - (a) - (b))
 
 const u8 cols[] = {
 	21, // A
@@ -124,37 +127,38 @@ static const u8 layout0[] = LAYOUT(
 	KEY_TAB       , KEY_Q       , KEY_W        , KEY_E       , KEY_R       , KEY_T        ,
 	KEY_LEFT_CTRL , KEY_A       , KEY_S        , KEY_D       , KEY_F       , KEY_G        ,
 	KEY_LEFT_SHIFT, KEY_Z       , KEY_X        , KEY_C       , KEY_V       , KEY_B        ,
-	KEY_NULL      , KEY_NULL    , KEY_NULL     , KEY_LEFT_ALT, KEY_LEFT_GUI, KEY_SPACE    ,
+	                                             KEY_LEFT_ALT, KEY_LEFT_GUI, KEY_SPACE    ,
 
 	KEY_6         , KEY_7       , KEY_8        , KEY_9       , KEY_0       , KEY_BACKSPACE,
 	KEY_Y         , KEY_U       , KEY_I        , KEY_O       , KEY_P       , KEY_BACKSLASH,
 	KEY_H         , KEY_J       , KEY_K        , KEY_L       , KEY_COLON   , KEY_QUOTE    ,
 	KEY_N         , KEY_M       , KEY_COMMA    , KEY_DOT     , KEY_SLASH   , KEY_RETURN   ,
-	KEY_SPACE     , KEY_LBRACKET, KEY_RBRACKET', KEY_NULL    , KEY_NULL    , KEY_NULL     ,
-);
+	KEY_SPACE     , KEY_LBRACKET, KEY_RBRACKET);
 
 const u8 ncols = sizeof(cols) / sizeof(cols[0]);
 const u8 nrows = sizeof(rows) / sizeof(rows[0]);
 
-u8 state[ncols * nrows] = {
-	HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH,
-	HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH,
-	HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH,
-	HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH,
-	HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH,
-	HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH,
-};
+u8 state[ncols * nrows] = { 0, };
+
+u8 get_state(u8 row, u8 col) {
+	u8 cols = state[row];
+	u8 mask = ((u8)(1)) << col;
+	return cols & mask;
+}
+
+void set_state(u8 row, u8 col, u8 val) {
+	u8 mask = ((u8)(1)) << col;
+	if (val) {
+		state[row] |= mask;
+	} else {
+		state[row] &= ~mask;
+	}
+}
 
 int main(void)
 {
 	init();
 	usb_device_attach();
-
-#ifdef DEBUG
-	while (!Serial);
-	Serial.begin(9600);
-	Serial.println("Hi");
-#endif
 
 	for (u8 i = 0; i < ncols; i++) pinMode(cols[i], INPUT_PULLUP);
 	for (u8 i = 0; i < nrows; i++) pinMode(rows[i], OUTPUT);
@@ -165,26 +169,18 @@ int main(void)
 		row = row == nrows - 1 ? 0 : row + 1;
 		digitalWrite(rows[last], HIGH);
 		digitalWrite(rows[row], LOW);
+		delayMicroseconds(30);
 		for (u8 col = 0; col < ncols; col++) {
-			u8 value = digitalRead(cols[col]);
-			if (state[row * ncols + col] != value) {
-				state[row * ncols + col] = value;
+			u8 value = !digitalRead(cols[col]);
+			if (get_state(row, col) != value) {
+				set_state(row, col, value);
 				u8 k = layout0[row * ncols + col];
-#ifdef DEBUG
-				Serial.print(row);
-				Serial.print(' ');
-				Serial.print(col);
-				Serial.print(": ");
-				Serial.print(value);
-				Serial.print(' ');
-				Serial.print((char)k);
-				Serial.println();
-#endif
-				if (value == LOW)
+				if (value)
 					Keyboard.press(k);
 				else
 					Keyboard.release(k);
 			}
+			delayMicroseconds(5);
 		}
 		if (serialEventRun) serialEventRun();
 	}
