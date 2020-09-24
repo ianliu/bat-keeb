@@ -96,6 +96,7 @@
 #define KEY_8         '8'
 #define KEY_9         '9'
 #define KEY_COLON     ';'
+#define KEY_COMMA     ','
 #define KEY_LBRACKET  '['
 #define KEY_RBRACKET  ']'
 #define KEY_QUOTE     '\''
