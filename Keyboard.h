@@ -127,6 +127,9 @@
 #define KEY_X         'x'
 #define KEY_Y         'y'
 #define KEY_Z         'z'
+#define KEY_GRAVE     '`'
+#define KEY_MINUS     '-'
+#define KEY_EQUAL     '='
 #define KEY_NULL      '\0'
 
 

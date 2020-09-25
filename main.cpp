@@ -46,21 +46,6 @@ typedef uint32_t u32;
  */
 
 /**
- * ┌                                           ┐
- * │ (A L1) (B L1) (C L1) (D L1) (E L1) (F L1) │
- * │ (A L2) (B L2) (C L2) (D L2) (E L2) (F L2) │
- * │ (A L3) (B L3) (C L3) (D L3) (E L3) (F L3) │
- * │ (A L4) (B L4) (C L4) (D L4) (E L4) (F L4) │
- * │                      (D L5) (E L5) (F L5) │
- * │ (A R1) (B R1) (C R1) (D R1) (E R1) (F R1) │
- * │ (A R2) (B R2) (C R2) (D R2) (E R2) (F R2) │
- * │ (A R3) (B R3) (C R3) (D R3) (E R3) (F R3) │
- * │ (A R4) (B R4) (C R4) (D R4) (E R4) (F R4) │
- * │                      (D R5) (E R5) (F R5) │
- * └                                           ┘
- */
-
-/**
  * Arduino Pro Micro pinout:
  *
  *     ┌─────────────┐
@@ -102,6 +87,8 @@ typedef uint32_t u32;
 
 #define DIFF(a, b) ((a) >= (b) ? (a) - (b) : UINT32_MAX - (b) + (a))
 
+#define KEY_FN 0x1
+
 const u8 cols[] = {
 	21, // A
 	20, // B
@@ -125,17 +112,32 @@ const u8 rows[] = {
 };
 
 static const u8 layout0[] = LAYOUT(
+	/* Left side */
 	KEY_ESC       , KEY_1       , KEY_2        , KEY_3       , KEY_4       , KEY_5        ,
 	KEY_TAB       , KEY_Q       , KEY_W        , KEY_E       , KEY_R       , KEY_T        ,
 	KEY_LEFT_CTRL , KEY_A       , KEY_S        , KEY_D       , KEY_F       , KEY_G        ,
 	KEY_LEFT_SHIFT, KEY_Z       , KEY_X        , KEY_C       , KEY_V       , KEY_B        ,
-	                                             KEY_LEFT_ALT, KEY_LEFT_GUI, KEY_SPACE    ,
-
+	                                             KEY_FN      , KEY_LEFT_GUI, KEY_SPACE    ,
+	/* Right side */
 	KEY_6         , KEY_7       , KEY_8        , KEY_9       , KEY_0       , KEY_BACKSPACE,
 	KEY_Y         , KEY_U       , KEY_I        , KEY_O       , KEY_P       , KEY_BACKSLASH,
 	KEY_H         , KEY_J       , KEY_K        , KEY_L       , KEY_COLON   , KEY_QUOTE    ,
 	KEY_N         , KEY_M       , KEY_COMMA    , KEY_DOT     , KEY_SLASH   , KEY_RETURN   ,
 	KEY_SPACE     , KEY_LBRACKET, KEY_RBRACKET);
+
+static const u8 layout1[] = LAYOUT(
+	/* Left side */
+	KEY_GRAVE     , KEY_F1      , KEY_F2       , KEY_F3      , KEY_F4      , KEY_F5       ,
+	KEY_TAB       , KEY_Q       , KEY_W        , KEY_E       , KEY_R       , KEY_T        ,
+	KEY_LEFT_CTRL , KEY_A       , KEY_S        , KEY_D       , KEY_F       , KEY_G        ,
+	KEY_LEFT_SHIFT, KEY_Z       , KEY_X        , KEY_C       , KEY_V       , KEY_B        ,
+	                                             KEY_FN      , KEY_LEFT_GUI, KEY_SPACE    ,
+	/* Right side */
+	KEY_F6        , KEY_F7      , KEY_F8       , KEY_F9      , KEY_MINUS   , KEY_EQUAL    ,
+	KEY_Y         , KEY_7       , KEY_8        , KEY_9       , KEY_LBRACKET, KEY_RBRACKET ,
+	KEY_H         , KEY_4       , KEY_5        , KEY_6       , KEY_COLON   , KEY_QUOTE    ,
+	KEY_N         , KEY_1       , KEY_2        , KEY_3       , KEY_SLASH   , KEY_RETURN   ,
+	KEY_SPACE     , KEY_0       , KEY_DOT);
 
 const u8 ncols = sizeof(cols) / sizeof(cols[0]);
 const u8 nrows = sizeof(rows) / sizeof(rows[0]);
@@ -210,6 +212,7 @@ int main(void)
 	}
 
 	u8 row = 0, last;
+	u8 fn = 0;
 	for (;;) {
 		last = row;
 		row = row == nrows - 1 ? 0 : row + 1;
@@ -229,11 +232,18 @@ int main(void)
 				if (!changed) continue;
 				for (u8 j = 0; j < ncols; j++) {
 					if (!(changed & (1 << j))) continue;
-					u8 k = layout0[i * ncols + j];
-					if (debounce_state[i] & (1 << j))
-						Keyboard.release(k);
-					else
-						Keyboard.press(k);
+					u8 k = fn ? layout1[i * ncols + j] : layout0[i * ncols + j];
+					if (debounce_state[i] & (1 << j)) {
+						if (k == KEY_FN)
+							fn = 0;
+						else
+							Keyboard.release(k);
+					} else {
+						if (k == KEY_FN)
+							fn = 1;
+						else
+							Keyboard.press(k);
+					}
 				}
 				state[i] = debounce_state[i];
 			}
