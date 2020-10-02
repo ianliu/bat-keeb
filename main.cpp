@@ -48,20 +48,20 @@ typedef uint32_t u32;
 /**
  * Arduino Pro Micro pinout:
  *
- *     ┌─────────────┐
- *     ┥ 1       RAW ┝
- *     ┥ 0       GND ┝
- *     ┥ GND     RST ┝
- *     ┥ GND     VCC ┝
- *   F ┥ 2        21 ┝ A
- *   E ┥ 3        20 ┝ B
- *   D ┥ 4        19 ┝ C
- *  L1 ┥ 5        18 ┝ R1
- *  L2 ┥ 6        15 ┝ R2
- *  L3 ┥ 7        14 ┝ R3
- *  L4 ┥ 8        16 ┝ R4
- *  L5 ┥ 9        10 ┝ R5
- *     └─────────────┘
+ *          ┌─────────────┐
+ *        F ┥ 1       RAW ┝
+ *        E ┥ 0       GND ┝ OLED GND
+ *          ┥ GND     RST ┝
+ *          ┥ GND     VCC ┝ OLED VCC
+ * OLED SDA ┥ 2        21 ┝ A
+ * OLED SCL ┥ 3        20 ┝ B
+ *        D ┥ 4        19 ┝ C
+ *       L1 ┥ 5        18 ┝ R1
+ *       L2 ┥ 6        15 ┝ R2
+ *       L3 ┥ 7        14 ┝ R3
+ *       L4 ┥ 8        16 ┝ R4
+ *       L5 ┥ 9        10 ┝ R5
+ *          └─────────────┘
  */
 
 #define LAYOUT( K00, K01, K02, K03, K04, K05 \
@@ -94,8 +94,8 @@ const u8 cols[] = {
 	20, // B
 	19, // C
 	4,  // D
-	3,  // E
-	2,  // F
+	0,  // E
+	1,  // F
 };
 
 const u8 rows[] = {
@@ -175,15 +175,17 @@ u8 read_cols() {
 	 * registers:
 	 *         C B A
 	 * PINF: 0 1 1 1 0 0 0 0
-	 *             D     F E
-	 * PIND: 0 0 0 1 0 0 1 1
+	 *             D F E
+	 * PIND: 0 0 0 1 1 1 0 0
 	 *
 	 * The following operation will merge the column values in the
 	 * following way:
 	 *           F E D C B A
 	 * RES:  0 0 1 1 1 1 1 1
 	 */
-	return (PINF >> 4) & 7 | (PIND >> 1) & 8 | (PIND & 3) << 4;
+	//return (PINF >> 4) & 0b111 | (PIND >> 1) & 0b1000 | (PIND & 0b11) << 4;
+	return (PINF >> 4) & 0b111 | (PIND >> 1) & 0b1000 | (PIND & 0b1100) << 2;
+	//return (PINF >> 4) & 0b111 | (PIND >> 1) & 0b1000;
 }
 
 int main(void)
@@ -206,9 +208,9 @@ int main(void)
 
 		/* Set columns to input pullups */
 		DDRD  &= ~0b01110000;
-		DDRF  &= ~0b00010011;
+		DDRF  &= ~0b00011100;
 		PORTF |=  0b01110000;
-		PORTD |=  0b00010011;
+		PORTD |=  0b00011100;
 	}
 
 	u8 row = 0, last;
