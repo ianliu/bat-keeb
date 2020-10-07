@@ -130,7 +130,7 @@ static const u8 layout1[] = LAYOUT(
 	KEY_GRAVE     , KEY_F1      , KEY_F2       , KEY_F3      , KEY_F4      , KEY_F5       ,
 	KEY_TAB       , KEY_Q       , KEY_W        , KEY_E       , KEY_R       , KEY_T        ,
 	KEY_LEFT_CTRL , KEY_A       , KEY_S        , KEY_D       , KEY_F       , KEY_G        ,
-	KEY_LEFT_SHIFT, KEY_Z       , KEY_X        , KEY_C       , KEY_V       , KEY_B        ,
+	KEY_LEFT_ALT  , KEY_Z       , KEY_X        , KEY_C       , KEY_V       , KEY_B        ,
 	                                             KEY_FN      , KEY_LEFT_GUI, KEY_SPACE    ,
 	/* Right side */
 	KEY_F6        , KEY_F7      , KEY_F8       , KEY_F9      , KEY_MINUS   , KEY_EQUAL    ,
