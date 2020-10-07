@@ -2,7 +2,6 @@
 
 BUILDDIR ?= build
 PORT     ?= /dev/ttyACM0
-BUILD    ?= debug
 
 CXX = avr-g++
 CC = avr-gcc
@@ -50,16 +49,7 @@ CORE = $(BUILDDIR)/abi.o \
        $(BUILDDIR)/HID.o \
        $(BUILDDIR)/Keyboard.o
 
-all: debug
-
-build/main-$(BUILD).hex: $(BUILDDIR) $(BUILDDIR)/main.hex
-	cp $(BUILDDIR)/main.hex $@
-
-release:
-	$(MAKE) BUILD=release BUILDDIR=$(BUILDDIR)/release build/main-release.hex
-
-debug:
-	$(MAKE) BUILD=debug CPPFLAGS=-DDEBUG BUILDDIR=$(BUILDDIR)/debug build/main-debug.hex
+all: $(BUILDDIR) $(BUILDDIR)/main.hex
 
 attach:
 	screen $(PORT) 9600
@@ -89,12 +79,6 @@ $(BUILDDIR)/main.hex: $(BUILDDIR)/main.elf $(BUILDDIR)/main.eep
 
 size: $(BUILDDIR)/main.elf
 	avr-size -A $^
-
-burn-debug:
-	$(MAKE) BUILD=debug BUILDDIR=$(BUILDDIR)/debug burn
-
-burn-release:
-	$(MAKE) BUILD=release BUILDDIR=$(BUILDDIR)/release burn
 
 burn: $(BUILDDIR)/main.hex
 	python reset.py $(PORT)
